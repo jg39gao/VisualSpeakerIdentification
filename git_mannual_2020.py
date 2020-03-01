@@ -66,7 +66,7 @@ git push <origin master>
 	# del a branch 
 	git branch -d dev 
 
-	# Push branch to remote repo. **NOT RECOMMENDED 
+	# Push branch to remote repo. **NOT RECOMMENDED**
 	'''every time you just need to merge your own branch to master , then push master to the remote repo '''
 	git push origin <branch> 
 
@@ -82,21 +82,21 @@ git push <origin master>
 
 
 
-****** ABOUT SSH  *************
+****** ABOUT SSH  ******************************************************
 # --- check if you have got a rsa key (id_rsa, id_rsa.pub)，
 cat ~/.ssh/id_rsa.pub
 
 # //copy to clipboard for mac. Add this SSH key in your github account/ setting 
 pbcopy < ~/.ssh/id_rsa.pub
 # If you don't have it,  then Create one :
-ssh-keygen -t rsa -C "jiejun.gao@ele.me"
+ssh-keygen -t rsa -C "example@gmail.com"
 
 # ****TRIFLE** : when encountering everytime passphrase requirement. do this:
 # This will ask you for the passphrase, enter it and it won't ask again.
 ssh-add ~/.ssh/id_rsa &>/dev/null
 
 # when git doesn't work and prompt:
->> fatal: bad config line 1 in file /Users/gaojiejun/.gitconfig
+>> fatal: bad config line 1 in file /Users/Username/.gitconfig
 # solution is: 
 Delete your ~/.gitconfig and manipulate it using the git config command at the terminal, as explained in the tutorial.
 
