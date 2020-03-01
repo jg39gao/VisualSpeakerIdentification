@@ -31,10 +31,13 @@ sudo yum install git
 ****** git STARTER ******************************************************
 
 
- # STEP1  Clone a repository , when be asked psw, type your computer psw
+# Choose a local directory to Clone a remote repository , when be asked psw, type your computer psw
 git clone git@github.com:jg39gao/VisualSpeakerIdentification.git
 '''after this step, the repository has been cloned into your new directory '''
 
+
+
+****** git MainCourse ******************************************************
 
 # Pull from the remote repo. (Technically fetch + merge remote changes first.)
 
@@ -49,44 +52,26 @@ git commit -m 'your commit messages'
 # Push the commitment to remote origin. 
 git push <origin master> 
 
-'''
-	****** ABOUT SSH  *************
-	# --- check if you have got a rsa key (id_rsa, id_rsa.pub)，
-	cat ~/.ssh/id_rsa.pub
 
-	# //copy to clipboard for mac. Add this SSH key in your github account/ setting 
-	pbcopy < ~/.ssh/id_rsa.pub
-	# If you don't have it,  then Create one :
-	ssh-keygen -t rsa -C "jiejun.gao@ele.me"
+	
+	****** Branch  ******************************************************
+	# Check current branches
+	git branch 
+	# Create a new branch 'dev' and switch to it.  The branch is isolated from others until you push it to the remote .
+	git checkout -b dev 
 
-	# ****TRIFLE** : when encountering everytime passphrase requirement. do this:
-	# This will ask you for the passphrase, enter it and it won't ask again.
-	ssh-add ~/.ssh/id_rsa &>/dev/null
+	# Switch back to master 
+	git checkout master 
 
-	# when git doesn't work and prompt:
-	>> fatal: bad config line 1 in file /Users/gaojiejun/.gitconfig
-	# solution is: 
-	Delete your ~/.gitconfig and manipulate it using the git config command at the terminal, as explained in the tutorial.
-'''
+	# del a branch 
+	git branch -d dev 
 
-****** Branch  ******************************************************
-# Check current branches
-git branch 
-# Create a new branch 'dev' and switch to it.  The branch is isolated from others until you push it to the remote .
-git checkout -b dev 
-
-# Switch back to master 
-git checkout master 
-
-# del a branch 
-git branch -d dev 
-
-# Push branch to remote repo. **NOT RECOMMENDED 
-'''every time you just need to merge your own branch to master , then push master to the remote repo '''
-git push origin <branch> 
+	# Push branch to remote repo. **NOT RECOMMENDED 
+	'''every time you just need to merge your own branch to master , then push master to the remote repo '''
+	git push origin <branch> 
 
 
-	****** Merge  ******
+	****** Merge  ******************************************************
 
 	# Merge branch dev to your current branch , say, master 
 	git merge dev 
@@ -96,6 +81,26 @@ git push origin <branch>
 	git diff <currentBranch> <merge branch>
 
 
+
+****** ABOUT SSH  *************
+# --- check if you have got a rsa key (id_rsa, id_rsa.pub)，
+cat ~/.ssh/id_rsa.pub
+
+# //copy to clipboard for mac. Add this SSH key in your github account/ setting 
+pbcopy < ~/.ssh/id_rsa.pub
+# If you don't have it,  then Create one :
+ssh-keygen -t rsa -C "jiejun.gao@ele.me"
+
+# ****TRIFLE** : when encountering everytime passphrase requirement. do this:
+# This will ask you for the passphrase, enter it and it won't ask again.
+ssh-add ~/.ssh/id_rsa &>/dev/null
+
+# when git doesn't work and prompt:
+>> fatal: bad config line 1 in file /Users/gaojiejun/.gitconfig
+# solution is: 
+Delete your ~/.gitconfig and manipulate it using the git config command at the terminal, as explained in the tutorial.
+
+'''
 -------------
 # @References:
 -------------
