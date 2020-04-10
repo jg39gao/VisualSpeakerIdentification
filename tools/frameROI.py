@@ -4,14 +4,20 @@
 Created on Wed Apr  8 14:17:22 2020
 @author: Jiejun Gao
 ------------------------------------------------------------
+This tool helps to make single image with annotation.txt(should desinate frameNo specifically) to seperate region(s) of interest(ROI).
 OPTIONS:
     -h : print this help message
-    -i : input directory
-    -t : annotation txt 
+    -i : input rawimage
+    -t : annotation txt, can be a txt file or a single annotation string like'frame#,n[x,y,w,h,label]'
     -f : frameNo, if -t is a .txt file, then need to desinate a frameNo
     -o : output results saved to desinated dirtory
-Usage: # in the terminal: 
-     python frameROI.py -i rawImage -t annotation_txt -o output_directory [-f frameNo]
+RETURN:
+    annotated full image
+    ROI(s)
+
+USAGE: # in the terminal: 
+    python frameROI.py -i <rawImage> -t <annotation_txt> -o <output_directory> [-f <frameNo>]
+    e.g.: python frameROI.py -i ../data/out111.jpg -t '111,3,-4,188,210,313,head_speaker' -o ../data/roi
 ------------------------------------------------------------\
 """
 
@@ -170,7 +176,7 @@ class frameROI:
             if y1< 0: y1= 0
             if y2> self.img_height: y2= self.img_height 
             
-            ROI = image[y1:y2, x1:x2]# when the h or w be negatie, image[] could lead to error: libpng error: Invalid IHDR data
+            ROI = image[y1:y2, x1:x2]# when the h or w be negative, image[] could lead to an error: libpng error: Invalid IHDR data
             cv2.imwrite(os.path.join(savedir, '{}_ROI_{}_{}.png').format(filename,label,i), ROI)
         return 
     # #---------------------------------------------------------------------------------------------------
