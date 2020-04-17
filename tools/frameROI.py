@@ -18,6 +18,7 @@ RETURN:
 USAGE: # in the terminal: 
     python frameROI.py -i <rawImage> -t <annotation_txt> -o <output_directory> [-f <frameNo>]
     e.g.: python frameROI.py -i ../data/out111.jpg -t '111,3,-4,188,210,313,head_speaker' -o ../data/roi
+    python frameROI.py -i ../data/out112.jpg -t ../data/5695231002474224804_veg350_gt.txt -f 112 -o ../data/roi
 ------------------------------------------------------------\
 """
 
@@ -62,10 +63,10 @@ class CommandLine:
         opts = dict(opts)
         
         self.exit = True
-        if (len(opts) < 3):
-            self.printHelp()
-            print("*** ERROR 0: 3 options(i,t,o) needed ***", file=sys.stderr)
-            return
+#        if (len(opts) < 3):
+#            self.printHelp()
+#            print("*** ERROR 0: 3 options(i,t,o) needed ***", file=sys.stderr)
+#            return
 
         if '-i' in opts:
             self.rawImg= opts['-i']
@@ -131,83 +132,190 @@ class CommandLine:
 #==============================================================================
 # Body parts
         
-class frameROI:
+class FrameROI:
     
-    def __init__(self, rawimg, annotatetxt, saveto_directory):
+    
+    def __init__(self, rawimg, annotations, labels, saveto_directory):
+        '''annotatetxt.shape: (n,4) . annotatetxt[i]=(x,y,w,h)
+            label.shape(n,)'''
         self.rawimg= rawimg
-        self.annotatetxt= annotatetxt
+        self.annotations= annotations
+        self.labels= labels
         self.saveto_directory= saveto_directory
+        if not os.path.exists(saveto_directory):
+            os.mkdir(saveto_directory)
         self.filename= rawimg.split('/')[-1].split('.')[0]
         self.image= cv2.imread(rawimg)
         self.img_height, self.img_width, self.img_channels= self.image.shape
         #image shape:  :height, width, channels
-
-
-        self.pattern_single= re.compile('-?\d+,-?\d+,-?\d+,-?\d+,[^,0-9]+[^,]+')
         
-    def annotate(self,img, xywh):
+    def annotate(image, xywh, color=(36,255,12)):
         x,y,w,h= xywh
         #Syntax: cv2.rectangle(image, start_point, end_point, color, thickness)
-        cv2.rectangle(img,(x,y),(x+w,y+h),(36,255,12),2) # annotation
-        return cv2
+        cv2.rectangle(image,(x,y),(x+w,y+h),color,2) # annotation
+        return image
     
-    def annotates(self,img, annotations):
+    def annotateWithLabel(image, xywh, label, color=(36,255,12)):
+        x,y,w,h= xywh
+        x1,y1,x2,y2= FrameROI.xywh2Points(image.shape, x,y,w,h)
+        y_label = y1 - 10 if y1 - 10 > 10 else y1 + 10
+        #Syntax: cv2.rectangle(image, start_point, end_point, color, thickness)
+        cv2.rectangle(image,(x,y),(x+w,y+h),color,2) # annotation
+        cv2.putText(image, str(label), (x1, y_label),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 255), 1)
+        return image
+
+    
+    def annotates(image, annotations, color):
         '''annotations.shape should be (n,4),  
            annotation paradigm: frame#,n[x,y,w,h,label]
         '''
-           
+        if len(annotations)==0: 
+            return image
+
         if np.array(annotations).ndim!=2 or annotations.shape[1]!=4  :
             print('***ERROR: annotations.shape should be (n,4)')
             return 
+        img= image
         for xywh in annotations:
-            self.annotate(img, xywh)
-        return cv2
+            FrameROI.annotate(img, xywh, color=color)
+        return img
     
-    # crop and save the ROIs 
-    def crop(self,image, annotations,labels, savedir, filename):
-        for i in range(len(annotations)):
-            x,y,w,h = annotations[i]
-            label= labels[i].strip()
-            
-            x1,x2= (x+w, x) if w<0 else (x, x+w)
-            y1,y2= (y+h, y) if h<0 else (y, y+h)
-            if x1< 0: x1= 0
-            if x2> self.img_width: x2= self.img_width
-            if y1< 0: y1= 0
-            if y2> self.img_height: y2= self.img_height 
-            
-            ROI = image[y1:y2, x1:x2]# when the h or w be negative, image[] could lead to an error: libpng error: Invalid IHDR data
-            cv2.imwrite(os.path.join(savedir, '{}_ROI_{}_{}.png').format(filename,label,i), ROI)
-        return 
-    # #---------------------------------------------------------------------------------------------------
+    def xywh2Points(imageshape_hwc, x,y,w,h):
+        x1,x2= (x+w, x) if w<0 else (x, x+w)
+        y1,y2= (y+h, y) if h<0 else (y, y+h)
+        if x1< 0: x1= 0
+        if x2> imageshape_hwc[1]: x2= imageshape_hwc[1] #image shape:  :height, width, channels
+        if y1< 0: y1= 0
+        if y2> imageshape_hwc[0]: y2= imageshape_hwc[0] # 
+        return (x1,y1,x2,y2)
+
     
-    def createROIs(self):
-#        _img= _rawImg
-#        filename= _img.split('/')[-1].split('.')[0]
+    def overlapping_line( line_seg1, line_seg2):
+        '''
+          input: line_seg1= (x1,x2), line_seg2= (x3, x4)
+          return: overlap(start, end)
+        '''
         
-        # dealing with the annotaion txt on each frame: annotation should like' frame#,n[x,y,w,h,label]'
-        anns= self.pattern_single.findall(self.annotatetxt)
+        a1, a2= sorted((line_seg1[0], line_seg1[1]))
+        b1, b2= sorted((line_seg2[0], line_seg2[1]))
+        rsl=(0,0)
+        if (b2< a1) or (b1>a2): # no overlap
+            rsl= (0,0)
+        else:
+            rsl=(max(a1,b1), min(a2,b2))
+        return rsl
+    
+    def overlapping_area(imageshape_hwc, ann1_xywh, ann2_xywh ):
+        '''
+        return( overlap_area, overlap(xywh))
+        '''
+        a_x1,a_y1,a_x2,a_y2= FrameROI.xywh2Points(imageshape_hwc, *ann1_xywh)
+        b_x1,b_y1,b_x2,b_y2= FrameROI.xywh2Points(imageshape_hwc, *ann2_xywh)
+        
+        x_ol= FrameROI.overlapping_line((a_x1, a_x2), (b_x1, b_x2))
+        y_ol= FrameROI.overlapping_line( (a_y1, a_y2), (b_y1, b_y2))
+        
+        w,h = x_ol[1]- x_ol[0], y_ol[1]- y_ol[0]
+        area= w* h 
+        
+        return (area, (x_ol[0], y_ol[0], w,h ))
+        
+    def overlapping_area_analyse(imageshape_hwc, ann1_xywh, ann2_xywh ):
+        '''
+        return( overlap_area/ areaOfAnnotation1, overlap_area/ areaOfAnnotation2)
+        '''
+        a_x1,a_y1,a_x2,a_y2= FrameROI.xywh2Points(imageshape_hwc, *ann1_xywh)
+        b_x1,b_y1,b_x2,b_y2= FrameROI.xywh2Points(imageshape_hwc, *ann2_xywh)
+        x_ol= FrameROI.overlapping_line((a_x1, a_x2), (b_x1, b_x2))
+        y_ol= FrameROI.overlapping_line( (a_y1, a_y2), (b_y1, b_y2))
+        
+        w,h = x_ol[1]- x_ol[0], y_ol[1]- y_ol[0]
+        area= w* h 
+        
+        area_a= (a_x2- a_x1)* (a_y2- a_y1)
+        area_b= (b_x2- b_x1)* (b_y2- b_y1)
+        return (area/area_a, area/area_b)
+        
+    
+    def cropImg(image, x1, y1, x2, y2, label, savedir='./', filename='', resize_wh= 0):
+        '''crop image by 2 points(x1,y1, x2,y2) and save
+           if resize_wh assigned ,it should be a tuple(width, height)'''
+        ROI = image[y1:y2, x1:x2]
+        if resize_wh!=0: ROI= cv2.resize(ROI, resize_wh, interpolation = cv2.INTER_AREA)
+        if not os.path.exists(savedir):
+                os.mkdir(savedir)
+        cv2.imwrite(os.path.join(savedir, '{}_crop_{}.png').format(filename,label), ROI)
+        return ROI
+    
+    def cropImgXywh(image, x, y, w, h, label, savedir='./', filename='', resize_wh=0):
+        '''crop image by xywh and save ,  
+           if resize_wh assigned ,it should be a tuple(width, height)'''
+        x1, y1, x2, y2= FrameROI.xywh2Points(image.shape, x,y,w,h)
+        return FrameROI.cropImg(image, x1, y1, x2, y2, label, savedir, filename, resize_wh)
+        
+    # #---------------------------------------------------------------------------------------------------
+    def paradigm_annotation_fromTxt(txtfile):
+        ''' input : annotation txtfile ( frame#,n[x,y,w,h,label])
+            return: dictionary {frameno:([xywh],[label])}
+        '''
+        if not os.path.exists(txtfile): 
+            print("***ERROR: file({}) doesn't exist".format(txtfile))
+            return
+        else:
+            rsl= dict()
+            with open(txtfile) as f:
+                line = f.readline().strip()
+                while line:
+                    frame= int(line.split(',')[0])
+                    annotations, labels= FrameROI.paradigm_annotation(line)
+                    rsl[frame]= (annotations, labels)
+                    line= f.readline()
+                
+            return rsl
+    
+    def paradigm_annotation(singleline_txt):
+        ''' input : frame#,n[x,y,w,h,label]
+            return: [xywh],[label]
+        '''
+        anns= re.compile('-?\d+,-?\d+,-?\d+,-?\d+,[^,0-9]+[^,]+').findall(singleline_txt)
         annotations= []
         labels=[]
-        for i in anns:
-            annotations.append(np.array(i.split(',')[:4], np.int))
-            labels.append(i.split(',')[4])
-        annotations= np.array(annotations)
-
-        # crop and save 
-        self.crop(self.image, annotations, labels, savedir=self.saveto_directory, filename=self.filename)
-        
-        # make annotations 
-        copy = self.image.copy()
-        self.annotates(copy, annotations)
+        for i in  anns:
+            xywh= np.array(i.split(',')[:4], np.int)
+            label= i.split(',')[4]
+            annotations.append(xywh)
+            labels.append(label)
+        return np.array(annotations), np.array(labels)
     
+    def createROIs(self, crop=0, save=1, boundingbox_color=(36,255,12)):
+        '''
+         annotate all the annotaions and save to desinated directory
+         if crop==true: crop and save all the ROIs
+         save: whether save annotated image
+         boundingbox_color: annotation color
+         
+        '''
+        annotations= self.annotations
+        labels=self.labels
+        copy = self.image.copy()
         
-        cv2.imwrite(os.path.join(self.saveto_directory, '{}_gt.png').format(self.filename), copy)
-        
-        #cv2.imshow('copy', copy)
-        #cv2.waitKey()
-        cv2.destroyAllWindows()
-        print('{} rois have been found'.format(len(annotations)))
+        for k,i in enumerate(annotations):
+            x,y,w,h= annotations[k]
+            label= labels[k]
+
+            if crop!=0: FrameROI.cropImgXywh(self.image, x,y,w,h, '{}_{}'.format(label,k), savedir=self.saveto_directory, 
+                                             filename=self.filename, resize_wh=(224,224) )
+            FrameROI.annotateWithLabel(copy,(x,y,w,h), '{}_{}'.format(label,k), color= boundingbox_color)
+
+        if save: 
+            cv2.imwrite(os.path.join(self.saveto_directory, '{}_gt.png').format(self.filename), copy)
+            #cv2.imshow('copy', copy)
+            #cv2.waitKey()
+            cv2.destroyAllWindows()
+        n = len(annotations)
+        print('{} rois have been annotated'.format(n))
+        return n 
 
 #==============================================================================
 # MAIN
@@ -218,11 +326,17 @@ if __name__ == '__main__':
     if config.exit:
         sys.exit(0) 
     rawImg='../Data/out111.jpg'
-    annotatetxt= '111,3,-4,188,210,313,head_speaker,382,33,182,309,head,434,270,71,46,lips'
+    annotatetxt0= '111,3,-4,188,210,313,head_speaker,382,33,182,309,head,434,270,71,46,lips'
+    annotatetxt= '111,3,-4,188,210,313,head_speaker'
+    
+    a,l=FrameROI.paradigm_annotation(annotatetxt0)
+    a1,l1= FrameROI.paradigm_annotation(config.annotatetxt)
+#    print('a.shape:',a.shape,a)
+#    print('l.shape:',l.shape,l)
     saveto_directory= r'../Data/roi'
     
-#    frameroi= frameROI(rawImg, annotatetxt, saveto_directory)
-    frameroi= frameROI(config.rawImg, config.annotatetxt, config.saveto_directory)
-    frameroi.createROIs()
+#    frameroi= FrameROI(rawImg, a,l, saveto_directory)
+    frameroi= FrameROI(config.rawImg, a1, l1, config.saveto_directory)
+    frameroi.createROIs(crop= 1)
 
     
