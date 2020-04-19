@@ -135,8 +135,22 @@ class videoDetectorEvaluation:
                     precision.append(0)
                     continue
                 
-                recall.append( head_detected/head_Num if head_Num>0 else None )  # it could be bigger than head_Num, so not always feasible 
-
+                ## recall: calculate the head number
+#                recall.append( head_detected/head_Num if head_Num>0 else None )  # it could be bigger than head_Num, so not always feasible 
+                
+                ## recall: calculate the heads that has been detected by model
+                single_gt_recall=[]
+                for gt_xywh in  self.gt_ann_head_dict[i][0]:
+                    overlap=[]
+                    for m_xywh in self.model_ann_dict[i]:
+                        overlap_pct1,overlap_pct2= fr.overlapping_area_analyse( self.vf.frameshape, m_xywh, gt_xywh )
+                        overlap.append(overlap_pct2)
+                        if overlap_pct2>= 0.4:
+                            break
+                    x= 1 if np.max(overlap)>=0.3 else np.max(overlap)
+                    single_gt_recall.append(x)
+                recall.append(np.mean(single_gt_recall))
+                
             # -- precision
                 single_ann_prec=[]
                 for m_xywh in self.model_ann_dict[i]: # 
@@ -150,6 +164,7 @@ class videoDetectorEvaluation:
                         
                         if overlap_pct1>= 1:
                             break # when model detected face are 90% included in the ground truth, assume it is right detected.
+                    x= 1 if np.max(overlap)>0.9 else np.max(overlap)
                     single_ann_prec.append(np.max(overlap))
                 precision.append(np.mean(single_ann_prec))
                 

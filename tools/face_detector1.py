@@ -48,7 +48,11 @@ class FaceDetector:
             os.mkdir(self.savedir)
             print("**WARNING :  create directory :{}**".format(self.savedir), file=sys.stderr)
 
-
+    def detect_cv2dnn_fromRawImg_conf7(rawimg):
+        return FaceDetector.detect_cv2dnn_fromRawImg(rawimg, conf=0.7)
+    def detect_cv2dnn_fromRawImg_conf3(rawimg):
+        return FaceDetector.detect_cv2dnn_fromRawImg(rawimg, conf=0.3)
+    
     def detect_cv2dnn_fromRawImg(rawimg, 
                               conf=0.5 ,
                               prototxt='deploy.prototxt.txt',
@@ -65,8 +69,9 @@ class FaceDetector:
         net = cv2.dnn.readNetFromCaffe(prototxt, model)
 #        imagecopy= image.copy()
         (h, w) = image.shape[:2]
-        blob = cv2.dnn.blobFromImage(cv2.resize(image, (300, 300)), 1.0,
-            (300, 300), (104.0, 177.0, 123.0))
+        resize= (w,h)#(300, 300)
+        blob = cv2.dnn.blobFromImage(cv2.resize(image, resize), 1.0,
+            resize, (104.0, 177.0, 123.0))
         net.setInput(blob)
         detections = net.forward() #  detections.shape: (1, 1, 200, 7)
         cnt=0
