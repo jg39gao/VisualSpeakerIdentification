@@ -19,7 +19,7 @@ hd.detect_head(inputpath, exportImg=False, outputpath = "./output/")
 -outputpath: The directory of the output annotated images (end with "/", "./output/" as default).
          The name of a output image starts with the last 3 characters before ".jpg" or ".png"
 
-This function returns a list of numpy arrays. Each array shows the [x,y,w,h] of the boxes.
+This function returns a list of numpy arrays. Each array shows the [x,y,w,h] of the boxes in this image.
 
 
 
