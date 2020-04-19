@@ -23,4 +23,4 @@ This function returns a list of numpy arrays. Each array shows the [x,y,w,h] of 
 
 
 
-You can take the "demo.py" or "demo_jupyter.ipynp" as a reference.
+You can take the "demo.py" or "demo_jupyter.ipynb" as a reference.
