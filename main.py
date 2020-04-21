@@ -6,6 +6,12 @@ Created on Tue Apr 21 11:21:24 2020
 
 Description - Code to link all the scripts of the project together
 """
+
+# BM TODO:
+# Test code works with full dataset
+# Import the face recognition components
+# Integrate the models and face recognition
+
 import clean
 import video2array
 import model
