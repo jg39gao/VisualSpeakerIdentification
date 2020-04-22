@@ -144,10 +144,11 @@ class videoDetectorEvaluation:
                     overlap=[]
                     for m_xywh in self.model_ann_dict[i]:
                         overlap_pct1,overlap_pct2= fr.overlapping_area_analyse( self.vf.frameshape, m_xywh, gt_xywh )
-                        overlap.append(overlap_pct2)
+                        overlap.append((overlap_pct2, overlap_pct1))
                         if overlap_pct2>= 0.4:
                             break
-                    x= 1 if np.max(overlap)>=0.3 else np.max(overlap)
+                    overlap= sorted(overlap, key= lambda x:(x[0], x[1]), reverse= 1)
+                    x= 1 if (overlap[0][0]>=0.3 and overlap[0][1]>=0.9) else overlap[0][0]
                     single_gt_recall.append(x)
                 recall.append(np.mean(single_gt_recall))
                 
