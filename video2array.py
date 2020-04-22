@@ -28,8 +28,9 @@ import csv
 import numpy as np
 import glob
 import os
+import sys
 
-def dataset(path="\data", exclude = {"lips-speaker","lips"}):
+def dataset2array(path="\data", exclude = {"offscreen-speaker", "lips", "lips-speaker"}):
     
     # Get a list of the files in the path
     file_list = glob.glob(os.path.join(os.getcwd() + path, "*_gt.txt"))
@@ -40,21 +41,41 @@ def dataset(path="\data", exclude = {"lips-speaker","lips"}):
         return 1
     
     # arrays for the data
-    X = []
-    Y = []
+    X_list = []
+    Y_list = []
     
-    # scrape the data from the files 
-    for i in range(len(file_list)):
+    # scrape the data from the first 300 files 
+    # Not enough mem for len(file_list) files
+    for i in range(150):
         tmp_X, tmp_Y = video2array(video_list[i],file_list[i],exclude)
         
-        X.append(tmp_X)
-        Y.append(tmp_Y)
+        for j in range(len(tmp_X)):
+            
+            if(len(tmp_X[j]) != 150528):
+                print(len(tmp_X[j]))
+                print(i)
+                del tmp_X[j]
+                del tmp_Y[j]
+        
+        if(len(tmp_X) != len(tmp_Y)):
+            print("Error")
+            print(len(tmp_X))
+            print(len(tmp_Y))
+            print(i)
+            
+
+        X_list.append(tmp_X)
+        Y_list.append(tmp_Y)
     
-    # Turn the arrays into np
-    X = np.array(X[0])
-    Y = np.array(Y).flatten()
-    
-    return X, Y
+    # make np arrays to return
+    y = np.concatenate(Y_list)
+    x = np.concatenate(X_list)
+
+
+    print("X Array Takes Up: %4.3f GB" % (sys.getsizeof(x)/ 1073741824))
+    print("Y Array Takes Up: %4.3f MB" % (sys.getsizeof(y)/ 1048576))
+
+    return x,y
 
 def video2array(path_video, path_txt, exclude):
     
@@ -64,6 +85,7 @@ def video2array(path_video, path_txt, exclude):
     frm_indx = 0
     return_data = []
     return_labels = []
+    accepted_labels = {"head", "lips", "lips-speaker","head-speaker","offscreen-speaker"}
     
     capture = cv2.VideoCapture(path_video)
     
@@ -85,8 +107,11 @@ def video2array(path_video, path_txt, exclude):
         
         if (ret is not True):
             break
-        
-        # for that frame extract all the images of heads
+
+        if(len(data_array[frm_indx]) == 0):
+            continue
+
+        # for that frame extract all the images
         for i in range(int(data_array[frm_indx][1])):
             
             # get the coordinates of the annotation
@@ -96,8 +121,14 @@ def video2array(path_video, path_txt, exclude):
             h = int(data_array[frm_indx][5 + 5 * i])
             label = data_array[frm_indx][6 + 5 * i] 
             
-            #if label in exclude:
-            #    continue
+            # Check no bad labels have crept through
+            if (label not in accepted_labels):
+                print("Bad label: ", label)
+                print(path_txt)
+                continue
+            
+            if label in exclude:
+                continue
                 
             # Crop the image to get just the head
             crop_img = frame[y:y+h, x:x+w]
@@ -119,23 +150,24 @@ def video2array(path_video, path_txt, exclude):
             else:
                 return_labels.append(0)
             
-            
             # If you want to see the images you are turning into arrays
             #image_filename = "frame" + str(frm_indx) +"_" + str(i) + "_" + label + ".jpg"
             #cv2.imwrite(image_filename, resized_img)
 
         frm_indx += 1
+        
+        if(frm_indx == len(data_array)):
+            break
+        
         if cv2.waitKey(10) & 0xFF == ord('q'):
             break
-    
-    # turn the return arrays into np arrays
-    return_data = np.array(return_data)
-    return_labels  = np.array(return_labels)
 
     capture.release()
     cv2.destroyAllWindows()
     
     return return_data, return_labels
 
+#x,y = dataset2array()
 
+    
     
