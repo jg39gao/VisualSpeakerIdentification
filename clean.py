@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
+"""h
 Created on Wed Apr  1 17:37:57 2020
 @author: George Tsoumis
 
@@ -81,6 +81,16 @@ def all_txt(path_t = "\data"):
             f.write(raw_file)
 
 
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Apr  1 17:37:57 2020
+@author: George Tsoumis
+
+"""
+
+import glob
+import os
+
 def all_txt_basic(path_t = "\data"):
 
     file_list = glob.glob(os.path.join(os.getcwd() + path_t, "*_gt.txt"))
@@ -138,6 +148,7 @@ def all_txt_basic(path_t = "\data"):
             
             raw_file = raw_file.replace("hed", "head")
             raw_file = raw_file.replace("offsereen,speaker", "offscreen-speaker")
+            raw_file = raw_file.replace("offsereen-speaker", "offscreen-speaker")
             
         with open(file_path, "w") as f:
             f.write(raw_file)
@@ -154,3 +165,7 @@ def missing_head(path_t = "\data"):
             
             if ("head" not in raw_file):
                 print(file_path)
+
+
+all_txt_basic()
+missing_head()
