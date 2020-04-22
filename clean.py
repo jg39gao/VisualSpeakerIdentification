@@ -54,3 +54,28 @@ def all_txt(path_t = "\data"):
             print('error in: ', file_list[i],tempfile)
             print('find the error and add another sub command below')
 
+ def all_txt_basic(path_t = "\data"):
+
+    file_list = glob.glob(os.path.join(os.getcwd() + path_t, "*_gt.txt"))
+    print("%d Files Found" % len(file_list))
+    
+    
+    for file_path in file_list:
+        with open(file_path) as f:
+            # Read the entire file into memory
+            raw_file = f.read()
+            
+            # Replace Rules
+            raw_file = raw_file.replace("_", "-")
+            
+            raw_file = raw_file.replace("lips,speaker",  "lips-speaker")
+            raw_file = raw_file.replace("lips, speaker", "lips-speaker")
+
+            raw_file = raw_file.replace("head,speaker", "head-speaker")
+            raw_file = raw_file.replace("head, speaker", "head-speaker")
+            
+            raw_file = raw_file.replace("offscreen,speaker", "offscreen-speaker")
+            raw_file = raw_file.replace("offscreen, speaker", "offscreen-speaker")
+            
+        with open(file_path, "w") as f:
+            f.write(raw_file)
