@@ -79,3 +79,78 @@ def all_txt(path_t = "\data"):
             
         with open(file_path, "w") as f:
             f.write(raw_file)
+
+
+def all_txt_basic(path_t = "\data"):
+
+    file_list = glob.glob(os.path.join(os.getcwd() + path_t, "*_gt.txt"))
+    print("%d Files Found" % len(file_list))
+    
+    
+    for file_path in file_list:
+        with open(file_path) as f:
+            # Read the entire file into memory
+            raw_file = f.read()
+            
+            # Replace Rules
+            raw_file = raw_file.replace("_", "-")
+            
+            raw_file = raw_file.replace("lips,speaker",  "lips-speaker")
+            raw_file = raw_file.replace("lips, speaker", "lips-speaker")
+            
+            raw_file = raw_file.replace("head,speaker", "head-speaker")
+            raw_file = raw_file.replace("head, speaker", "head-speaker")
+            
+            raw_file = raw_file.replace("offscreen,speaker", "offscreen-speaker")
+            raw_file = raw_file.replace("offscreen, speaker", "offscreen-speaker")
+            
+            raw_file = raw_file.replace("head0", "head")
+            raw_file = raw_file.replace("lips0", "lips")
+            
+            raw_file = raw_file.replace("head1", "head")
+            raw_file = raw_file.replace("lips1", "lips")
+            
+            raw_file = raw_file.replace("head2", "head")
+            raw_file = raw_file.replace("lips2", "lips")
+            
+            raw_file = raw_file.replace("head3", "head")
+            raw_file = raw_file.replace("lips3", "lips")
+            
+            raw_file = raw_file.replace("lips--speaker", "lips-speaker")
+            raw_file = raw_file.replace("head--speaker", "head-speaker")
+            
+            raw_file = raw_file.replace("offscreen,", "offscreen-speaker,")
+            raw_file = raw_file.replace("offscreen-speaker-speaker", "offscreen-speaker")
+            
+            raw_file = raw_file.replace("lip-speaker", "lips-speaker")
+            raw_file = raw_file.replace("lips+speaker", "lips-speaker")
+            
+            raw_file = raw_file.replace("had,", "head,")
+            raw_file = raw_file.replace("lips-speker",  "lips-speaker")
+            raw_file = raw_file.replace("head-spekaer",  "head-speaker")
+            raw_file = raw_file.replace("lpis-speaker", "lips-speaker")
+            
+            raw_file = raw_file.replace("head-speaking", "head-speaker")
+            raw_file = raw_file.replace("lips-speaking", "lips-speaker")
+            
+            raw_file = raw_file.replace("tips", "lips")
+            raw_file = raw_file.replace("offsccreen-speaker", "offscreen-speaker")
+            
+            raw_file = raw_file.replace("hed", "head")
+            raw_file = raw_file.replace("offsereen,speaker", "offscreen-speaker")
+            
+        with open(file_path, "w") as f:
+            f.write(raw_file)
+
+def missing_head(path_t = "\data"):
+    
+    file_list = glob.glob(os.path.join(os.getcwd() + path_t, "*_gt.txt"))
+    print("%d Files Found" % len(file_list))
+    
+    for file_path in file_list:
+        with open(file_path) as f:
+            # Read the entire file into memory
+            raw_file = f.read()
+            
+            if ("head" not in raw_file):
+                print(file_path)
