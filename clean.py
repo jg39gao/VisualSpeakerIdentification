@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""h
+"""
 Created on Wed Apr  1 17:37:57 2020
 @author: George Tsoumis
 
@@ -8,6 +8,7 @@ Created on Wed Apr  1 17:37:57 2020
 import glob
 import os
 import re
+import ntpath
 
 def all_txt(path_t = "\data"):
 
@@ -79,17 +80,6 @@ def all_txt(path_t = "\data"):
             
         with open(file_path, "w") as f:
             f.write(raw_file)
-
-
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Apr  1 17:37:57 2020
-@author: George Tsoumis
-
-"""
-
-import glob
-import os
 
 def all_txt_basic(path_t = "\data"):
 
@@ -166,6 +156,22 @@ def missing_head(path_t = "\data"):
             if ("head" not in raw_file):
                 print(file_path)
 
-
-all_txt_basic()
-missing_head()
+def sort_classes(path = "\data_test_train_dev\\train"):
+    
+    # Get a list of the pictures in the path
+    # Sort pics into seperate folders for the two classes
+    
+    file_list = glob.glob(os.path.join(os.getcwd() + path, "*.png"))
+    print(os.getcwd() + path)
+    print(len(file_list))
+    for i in range(len(file_list)):
+        
+        file_name = ntpath.basename(file_list[i])
+        
+        if ("speaker" in file_name):
+            print(file_name)
+            
+            os.rename(file_list[i], os.getcwd() + path + "\speaker\\" + file_name)
+        else:
+            print(file_name)
+            os.rename(file_list[i], os.getcwd() + path + "\\non-speaker\\" + file_name)
