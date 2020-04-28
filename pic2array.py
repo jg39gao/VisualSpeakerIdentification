@@ -42,3 +42,34 @@ def faces2array(path="\data_test_train_dev\\train"):
     print("Y Array Takes Up: %4.3f MB" % (sys.getsizeof(Y_data)/ 1048576))
 
     return X_data, Y_data
+
+def faces2array_sample(path="\data_test_train_dev\\train", sample = 50):
+    
+    # Get a list of the files in the path
+    file_list = glob.glob(os.path.join(os.getcwd() + path, "*.png"))
+    
+    X_data = np.zeros((sample, 150528), dtype = np.ubyte)
+    Y_data = np.zeros(sample)
+    
+    for i in range(sample):
+        
+        # read the image
+        x = cv2.imread(file_list[i])
+
+        # Resize the image into the right size
+        resized_img = cv2.resize(x, (224, 224))
+        
+        # Flatten image into a single dimension array
+        flattened = resized_img.flatten()
+        
+        X_data[i] = flattened
+        
+        if("speaker" in file_list[i]):
+            Y_data[i] = 1
+    
+    
+    Y_data = Y_data.astype(np.bool_)
+    print("X Array Takes Up: %4.3f GB" % (sys.getsizeof(X_data)/ 1073741824))
+    print("Y Array Takes Up: %4.3f MB" % (sys.getsizeof(Y_data)/ 1048576))
+
+    return X_data, Y_data
