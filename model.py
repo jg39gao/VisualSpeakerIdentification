@@ -5,7 +5,6 @@ Created on Tue Apr 21 11:21:24 2020
 
 Description - Aggregation of all ML models
 """
-from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
@@ -15,28 +14,19 @@ import numpy as np
 import matplotlib.pyplot as plt
 import keras
 import os
-from keras.preprocessing.image import load_img
-from keras.preprocessing.image import img_to_array
 from keras.preprocessing.image import array_to_img
 from keras.models import Sequential
 from keras.layers import Conv2D, MaxPooling2D
 from keras.layers import Activation, Dropout, Flatten, Dense
 from keras import backend as K
-from keras.applications.vgg19 import VGG19
-from keras.applications.vgg19 import preprocess_input
-from keras.models import Model
-from sklearn.naive_bayes import GaussianNB
-from sklearn.svm import SVC
 
-def basic(X, Y, seed = 42):
-    
-    #### Test Train Split
-    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.20, random_state=seed)
+
+def basic(X_train, X_test, Y_train, Y_test, seed = 42):
     
     #### Logistical Regression
     reg_model = LogisticRegression(solver = 'liblinear', random_state=seed).fit(X_train, Y_train)
     accuracy = reg_model.score(X_test, Y_test)
-    print("Logistical Regression:\t\t\t", accuracy)
+    print("Logistical Regression:\t\t", accuracy)
     
     #### Decision Tree
     clf = DecisionTreeClassifier(random_state=seed)
@@ -50,12 +40,9 @@ def basic(X, Y, seed = 42):
     score_r = rfc.score(X_test,Y_test)
     print("Random Forest:\t\t\t", score_r)
 
-def pca(X, Y, seed = 42):
+def pca(X_train, X_test, Y_train, Y_test, seed = 42):
     
-    #### Test Train Split
-    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.20, random_state=seed)
-    
-    no_components = len(Y_train)
+    no_components = len(X_train)
     pca_face = PCA(n_components=no_components, svd_solver='randomized', whiten=True).fit(X_train)
     
     #### Decide the components to be kept
@@ -66,11 +53,11 @@ def pca(X, Y, seed = 42):
     for i in range(no_components):
         evs += pca_face.explained_variance_[i]
         perc.append(evs/sum_evs)
-     
+ 
     plt.plot(range(1, no_components+1), perc)
-    
-    no_components = input("Enter the number of components to keep: ")
-    
+    plt.show()
+    no_components = int(input("Enter the number of components to keep: "))
+    #no_components = 10
     pca_face = PCA(n_components=no_components, svd_solver='randomized', whiten=True).fit(X_train)
     results = pca_face.transform(X_train)
     
@@ -79,6 +66,7 @@ def pca(X, Y, seed = 42):
     pca_image = np.reshape(face_approx[0], (224,224,3))
     pca_image = array_to_img(pca_image.astype(np.uint8), scale=False, dtype=np.uint8)
     plt.imshow(pca_image)
+    plt.show()
     
     #### Process the Test Data
     pca_x_test = PCA(n_components=no_components, svd_solver='randomized', whiten=True).fit(X_test)
@@ -98,11 +86,9 @@ def pca(X, Y, seed = 42):
     pre_lr = LR.predict(results_test)
     LR_accuracy = accuracy_score(pre_lr,Y_test)
     print('LogisticRegression Accuracy:', LR_accuracy)
-    
-def cnn(X, Y, seed = 42):
-    
-    #### Test Train Split
-    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.20, random_state=seed)
+
+   
+def cnn(X_train, X_test, Y_train, Y_test, seed = 42):
     
     CNN_X_train = np.reshape(X_train, (X_train.shape[0], 224,224,3))
     CNN_X_test = np.reshape(X_test, (X_test.shape[0], 224,224,3))
@@ -169,28 +155,3 @@ def cnn(X, Y, seed = 42):
     scores = model.evaluate(x_test, Y_test, verbose=1)
     print('Test loss:', scores[0])
     print('Test accuracy:', scores[1])
-    
-    # Extrat feature using VGG19
-
-    base_model = VGG19(weights='imagenet')
-    model = Model(inputs=base_model.input, outputs=base_model.get_layer('block4_pool').output)
-    block4_pool_features = model.predict(x_train)
-    block4_pool_features_test = model.predict(x_test)
-    
-    # The VGG extracted features
-    svm_x_train = np.reshape(block4_pool_features, (block4_pool_features.shape[0],-1))
-    svm_x_test = np.reshape(block4_pool_features_test, (block4_pool_features_test.shape[0],-1))
-    
-    print(block4_pool_features.shape)
-    print(block4_pool_features_test.shape)
-    
-    gnb = GaussianNB()
-    y_pred = gnb.fit(svm_x_train, Y_train).predict(svm_x_test)
-    NB_accuracy = accuracy_score(y_pred,Y_test)
-    print('naive_bayes Accuracy:', NB_accuracy)
-        
-    for kernel in Kernel:
-        clf = SVC(kernel=kernel, gamma="auto", degree=1, cache_size=5000).fit(X_train, Y_train)
-        print("The accuracy under kernel %s is %f" %(kernel, clf.score(X_test,Y_test)))
-    
-    
