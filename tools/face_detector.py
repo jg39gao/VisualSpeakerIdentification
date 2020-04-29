@@ -1,23 +1,52 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Fri Apr 17 02:48:37 2020
-
+Created on Sat Apr 11 15:27:09 2020
 @author: gaojiejun
-"""
+------------------------------------------------------------
+This tool helps to detect face(s)> confidence in a single image 
+OPTIONS:
+    -h : print this help message
+    -i : input rawimage
+    -p : prototxt  deploy.prototxt.txt
+    -m : model     res10_300x300_ssd_iter_140000.caffemodel
+    -c : confidence
+    -o : output results saved to desinated dirtory
+RETURN:
+    annotated full image
+    face(s)
 
+USAGE: # in the terminal: 
+    python face_detector.py -i <rawImage> -p <deploy.prototxt.txt> -m <res10_300x300_ssd_iter_140000> [-c <confidence>] [-o <../Data/face>]
+    e.g.: python face_detector.py --image ../data/toast003.jpg --prototxt deploy.prototxt.txt --model res10_300x300_ssd_iter_140000.caffemodel --confidence 0.5 --output ../Data/face
+
+------------------------------------------------------------\
+"""
 
 ### reference: https://www.pyimagesearch.com/2018/02/26/face-detection-with-opencv-and-deep-learning/ 
 
 # import the necessary packages
 import os, sys
 import numpy as np
+import argparse
 import cv2
 
 from frameROI import FrameROI  as fr
+from face_detector1 import FaceDetector as faceD
 
 # construct the argument parse and parse the arguments
-
+ap = argparse.ArgumentParser()
+ap.add_argument("-i", "--image", required=True, default='../data/toast003.jpg',
+    help="path to input image")
+ap.add_argument("-p", "--prototxt", required=True, default='deploy.prototxt.txt',
+    help="path to Caffe 'deploy' prototxt file")
+ap.add_argument("-m", "--model", required=True,  default= 'res10_300x300_ssd_iter_140000.caffemodel',
+    help="path to Caffe pre-trained model")
+ap.add_argument("-c", "--confidence", type=float, default=0.5,
+    help="minimum probability to filter weak detections")
+ap.add_argument("-o", "--output",  default='./',
+    help="minimum probability to filter weak detections")
+args = vars(ap.parse_args())
 
 ## ------------------------------------------------------------------------------------
 # load our serialized model from disk
@@ -48,36 +77,25 @@ class FaceDetector:
             os.mkdir(self.savedir)
             print("**WARNING :  create directory :{}**".format(self.savedir), file=sys.stderr)
 
-    def detect_cv2dnn_fromRawImg_conf7(rawimg, is_rawimg= 1):
-        return FaceDetector.detect_cv2dnn_fromRawImg(rawimg, conf=0.7, is_rawimg= is_rawimg)
-    def detect_cv2dnn_fromRawImg_conf3(rawimg, is_rawimg= 1):
-        return FaceDetector.detect_cv2dnn_fromRawImg(rawimg, conf=0.3, is_rawimg= is_rawimg)
-    
+
     def detect_cv2dnn_fromRawImg(rawimg, 
                               conf=0.5 ,
                               prototxt='deploy.prototxt.txt',
-                              model='res10_300x300_ssd_iter_140000.caffemodel',
-                              is_rawimg= 1 
+                              model='res10_300x300_ssd_iter_140000.caffemodel'
                               ):
         '''
         model1: cv2.dnn.readNetFromCaffe
-        rawimg could be a cv2 BGR numpyarray if is_rawimg= 0 
         
         '''
 #        prototxt='deploy.prototxt.txt'
 #        model= 'res10_300x300_ssd_iter_140000.caffemodel'
 #        conf= 0.5 
-        image= cv2.imread(rawimg) if is_rawimg else rawimg
+        image= cv2.imread(rawimg)
         net = cv2.dnn.readNetFromCaffe(prototxt, model)
 #        imagecopy= image.copy()
         (h, w) = image.shape[:2]
-#        -------importance blob------------------------------------------
-        resize= (w,h)#inner_blob_size #(w, w)#(w,h)#
-#        blob = cv2.dnn.blobFromImage(image, 1.0,
-#            (w,h), (104.0, 177.0, 123.0))
-        blob = cv2.dnn.blobFromImage(cv2.resize(image, resize), 1.0,
-            resize, (104.0, 177.0, 123.0))
-#        -------------------------------------------------
+        blob = cv2.dnn.blobFromImage(cv2.resize(image, (300, 300)), 1.0,
+            (300, 300), (104.0, 177.0, 123.0))
         net.setInput(blob)
         detections = net.forward() #  detections.shape: (1, 1, 200, 7)
         cnt=0
@@ -98,11 +116,10 @@ class FaceDetector:
                 (startX, startY, endX, endY) = box.astype("int")
                 w1= endX- startX
                 h1= endY- startY
-                # if we set the blob resize (as keep original) it is important to check whether the annotation is legal
-                if (startX>=0 and startX<=w) and (startY>=0 and startY<=h) and(endX>=0 and endX<=w) and (endY>=0 and endY<=h):  
-                    annotations.append((startX, startY, w1, h1))
-                    labels.append(confidence)
-        return np.array(annotations)#, np.array(labels)
+                
+                annotations.append((startX, startY, w1, h1))
+                labels.append(confidence)
+        return np.array(annotations), np.array(labels)
 
 
     def detect(self, crop= 0):
@@ -157,18 +174,34 @@ class FaceDetector:
         return
     
     def detect1(self, crop= 0):
-        annotations= FaceDetector.detect_cv2dnn_fromRawImg(self.rawimg)
+        annotations, labels= FaceDetector.detect_cv2dnn_fromRawImg(self.rawimg)
         
-        print('anns.shape11:', annotations )
-#        print('labels.shape:',labels)
-        ROI=fr(rawimg= self.rawimg, annotations= annotations, saveto_directory= self.savedir)
+#        print(annotations)
+#        print(labels)
+        ROI=fr(rawimg= self.rawimg, annotations= annotations, labels=labels, saveto_directory= self.savedir)
                         #self, rawimg, annotations, labels, saveto_directory):
         ROI.createROIs(crop=crop)
         
-        cnt= len(annotations)
+        cnt= len(labels)
         print('summary: {} / faces filtered/detected.'.format(cnt))#,detections.shape[2] ))
         
 
         ## show the output image
         #cv2.imshow("Output", image)
         #cv2.waitKey(0)
+#==============================================================================
+# MAIN
+
+if __name__ == '__main__':
+
+    rawimg='../data/toast003.jpg'
+    prototxt='deploy.prototxt.txt'
+    model= 'res10_300x300_ssd_iter_140000.caffemodel'
+    conf= 0.5 
+    output= '../data/face6'
+#   rawimg, prototxt, model, confidence, saveto_directory
+#    fd= FaceDetector(rawimg, prototxt, model, conf, output)
+    fd= FaceDetector(args['image'], args['prototxt'],args['model'],args['confidence'],args['output'])
+    
+#    fd= faceD(args['image'], args['prototxt'],args['model'],args['confidence'],args['output'])
+    fd.detect1(crop=1)

@@ -262,6 +262,7 @@ class FrameROI:
            
            '''
         ROI = image[y1:y2, x1:x2]
+        
         if resize_wh!=0: ROI= cv2.resize(ROI, resize_wh, interpolation = cv2.INTER_AREA)
         
         if save: 

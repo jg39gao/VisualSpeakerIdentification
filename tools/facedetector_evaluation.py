@@ -19,9 +19,9 @@ import time
 import os, sys,re
 import numpy as np
 
-
-video='../data/5695231002474224804_veg301.wmv'
-annotation_txt= '../data/5695231002474224804_veg301_gt.txt'
+#
+#video='../data/5695231002474224804_veg3011.wmv'
+#annotation_txt= '../data/5695231002474224804_veg3011_gt.txt'
 
 class Video2Frame:
     def __init__(self, videofile, saveframe=1, savedir= '../data'):
@@ -87,6 +87,7 @@ class Video2Frame:
         
         for i, f in self.frames.items():
             annotations = model(f, is_rawimg= 0)
+#            print('frame{} shape{},annotations:\n{}'.format(i,f.shape,annotations)) #@jjg
             ROI= fr(f,annotations, saveto_directory= self.savedir, rawimg_is_array='BGR',filename='{}_frame{}'.format(self.filename, i) )
             n, rois= ROI.createROIs(*argv, **kw)
             faces[i]= rois
