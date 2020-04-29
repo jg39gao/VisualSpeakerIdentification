@@ -19,10 +19,12 @@ from keras.models import Sequential
 from keras.layers import Conv2D, MaxPooling2D
 from keras.layers import Activation, Dropout, Flatten, Dense
 from keras import backend as K
+from sklearn.naive_bayes import GaussianNB
 
 
 def basic(X_train, X_test, Y_train, Y_test, seed = 42):
     
+
     #### Logistical Regression
     reg_model = LogisticRegression(solver = 'liblinear', random_state=seed).fit(X_train, Y_train)
     accuracy = reg_model.score(X_test, Y_test)
@@ -39,6 +41,12 @@ def basic(X_train, X_test, Y_train, Y_test, seed = 42):
     rfc = rfc.fit(X_train,Y_train)
     score_r = rfc.score(X_test,Y_test)
     print("Random Forest:\t\t\t", score_r)
+    
+    #### Gaussian Naive Bayes
+    gnb = GaussianNB()
+    gnb.fit(X_train, Y_train)
+    score_g = gnb.score(X_test,Y_test)
+    print("Gaussian Naive Bayes:\t\t", score_g)
 
 def pca(X_train, X_test, Y_train, Y_test, seed = 42):
     
@@ -53,7 +61,8 @@ def pca(X_train, X_test, Y_train, Y_test, seed = 42):
     for i in range(no_components):
         evs += pca_face.explained_variance_[i]
         perc.append(evs/sum_evs)
- 
+    
+    plt.xlim(0, 500)
     plt.plot(range(1, no_components+1), perc)
     plt.show()
     no_components = int(input("Enter the number of components to keep: "))
@@ -87,11 +96,61 @@ def pca(X_train, X_test, Y_train, Y_test, seed = 42):
     LR_accuracy = accuracy_score(pre_lr,Y_test)
     print('LogisticRegression Accuracy:', LR_accuracy)
 
-   
-def cnn(X_train, X_test, Y_train, Y_test, seed = 42):
+def pca2(X_train, X_test, Y_train, Y_test, seed = 42, auto_pic = True, threshold_percent = 99):
+    
+    # Discover the best number of components to use 
+    initial_pca = PCA(n_components=len(X_train))
+    initial_pca.fit(X_train)
+    
+    percent_var = (initial_pca.explained_variance_ratio_ * 100)
+    
+    plt.xlabel('Component')
+    plt.ylabel('Percentage Variance Contribution')
+    plt.title("Variance Contribution from each Component")
+    plt.xlim(0, 100)
+    plt.plot(percent_var)
+    plt.show()
+    
+    perc = []
+    evs = 0
+    sum_evs = sum(initial_pca.explained_variance_)
+    
+    for i in range(len(X_train)):
+        evs += initial_pca.explained_variance_[i]
+        perc.append(evs/sum_evs*100)
+    
+    plt.xlim(0, 100)
+    plt.xlabel('Component')
+    plt.ylabel('Cumulative Percentage Variance Contribution')
+    plt.title("Cumulative Variance Contribution from each Component")
+    plt.plot(perc)
+    plt.show()
+    
+    if(auto_pic is True):
+        
+        for i in range(len(perc)):
+            if(perc[i] > threshold_percent):
+                print(i, "components will  be kept as these contribute over",threshold_percent,"% of variance.")
+                break
+        
+        no_components = i
+        
+    else:    
+        no_components = int(input("Enter the number of components to keep: "))
+
+    # Transform the data
+    transform_pca = PCA(n_components=no_components)
+    X_train = transform_pca.fit_transform(X_train)
+    X_test = transform_pca.transform(X_test)
+    
+    #### Test out the reduced data 
+    basic(X_train, X_test, Y_train, Y_test)
+          
+def cnn(X_train, X_test, X_dev, Y_train, Y_test, Y_dev, seed = 42):
     
     CNN_X_train = np.reshape(X_train, (X_train.shape[0], 224,224,3))
     CNN_X_test = np.reshape(X_test, (X_test.shape[0], 224,224,3))
+    CNN_X_dev = np.reshape(X_dev, (X_dev.shape[0], 224,224,3))
     
     epochs = 60
     batch_size = 16
@@ -135,13 +194,15 @@ def cnn(X_train, X_test, Y_train, Y_test, seed = 42):
     
     x_train = CNN_X_train.astype('float32')
     x_test = CNN_X_test.astype('float32')
+    x_dev = CNN_X_dev.astype('float32')
     x_train /= 255
     x_test /= 255
+    x_dev /= 225
     
     model.fit(x_train, Y_train,
                   batch_size=batch_size,
                   epochs=epochs,
-                  validation_data=(x_test, Y_test),
+                  validation_data=(x_dev, Y_dev),
                   shuffle=True)
     
     # Save model and weights
