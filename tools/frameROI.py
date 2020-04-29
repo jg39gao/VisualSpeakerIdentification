@@ -135,17 +135,32 @@ class CommandLine:
 class FrameROI:
     
     
-    def __init__(self, rawimg, annotations, labels, saveto_directory):
+    def __init__(self, rawimg, annotations, labels=None, saveto_directory='./', rawimg_is_array='RAW', filename='img'):
         '''annotatetxt.shape: (n,4) . annotatetxt[i]=(x,y,w,h)
-            label.shape(n,)'''
-        self.rawimg= rawimg
+            label.shape:(n,), if labels=0, labels will be automatically none for every annotations
+            
+            rawimg_is_array: 'RAW'(default) or 'BGR'(from cv2.imread())
+            '''
+        if rawimg_is_array=='RAW':
+            self.rawimg= rawimg
+            self.filename= rawimg.split('/')[-1].split('.')[0]
+            self.image= cv2.imread(rawimg)
+        elif rawimg_is_array=='BGR':#  from cv2.imread(rawimg)
+            self.rawimg=None
+            self.filename= filename
+            self.image= rawimg
+        else: 
+            print('###ERROR of image input####')
+            return
+        
         self.annotations= annotations
         self.labels= labels
+        if self.labels is None:
+            self.labels= np.zeros(len(annotations)).astype(np.uint32)
+            
         self.saveto_directory= saveto_directory
         if not os.path.exists(saveto_directory):
             os.mkdir(saveto_directory)
-        self.filename= rawimg.split('/')[-1].split('.')[0]
-        self.image= cv2.imread(rawimg)
         self.img_height, self.img_width, self.img_channels= self.image.shape
         #image shape:  :height, width, channels
         
@@ -238,21 +253,32 @@ class FrameROI:
         return (area/area_a, area/area_b)
         
     
-    def cropImg(image, x1, y1, x2, y2, label, savedir='./', filename='', resize_wh= 0):
-        '''crop image by 2 points(x1,y1, x2,y2) and save
-           if resize_wh assigned ,it should be a tuple(width, height)'''
+    def cropImg(image, x1, y1, x2, y2, label, save, savedir='./', filename='', resize_wh= 0):
+        '''crop image by 2 points(x1,y1, x2,y2) and save(if save= true)
+           if resize_wh assigned ,it should be a tuple(width, height)
+           if save= true, croped image will be saved to <savedir>. 
+           
+           return roi numpyarray
+           
+           '''
         ROI = image[y1:y2, x1:x2]
         if resize_wh!=0: ROI= cv2.resize(ROI, resize_wh, interpolation = cv2.INTER_AREA)
-        if not os.path.exists(savedir):
-                os.mkdir(savedir)
-        cv2.imwrite(os.path.join(savedir, '{}_crop_{}.png').format(filename,label), ROI)
+        
+        if save: 
+            if not os.path.exists(savedir):
+                    os.mkdir(savedir)
+            cv2.imwrite(os.path.join(savedir, '{}_crop_{}.png').format(filename,label), ROI)
         return ROI
     
-    def cropImgXywh(image, x, y, w, h, label, savedir='./', filename='', resize_wh=0):
+    def cropImgXywh(image, x, y, w, h, label, save= 1, savedir='./', filename='', resize_wh=0):
         '''crop image by xywh and save ,  
-           if resize_wh assigned ,it should be a tuple(width, height)'''
+           if resize_wh assigned ,it should be a tuple(width, height)
+           if save= true, croped image will be saved to <savedir>. 
+           
+           return roi numpyarray
+           '''
         x1, y1, x2, y2= FrameROI.xywh2Points(image.shape, x,y,w,h)
-        return FrameROI.cropImg(image, x1, y1, x2, y2, label, savedir, filename, resize_wh)
+        return FrameROI.cropImg(image, x1, y1, x2, y2, label, save, savedir, filename, resize_wh)
         
     # #---------------------------------------------------------------------------------------------------
     def paradigm_annotation_fromTxt(txtfile):
@@ -288,24 +314,39 @@ class FrameROI:
             labels.append(label)
         return np.array(annotations), np.array(labels)
     
-    def createROIs(self, crop=0, save=1, boundingbox_color=(36,255,12)):
+    def createROIs(self, crop=0, save=1, boundingbox_color=(36,255,12), return_RoiArray= False, flatten=0, return_RoiArray_2RGB=False,  resize_wh=(224,224)):
         '''
          annotate all the annotaions and save to desinated directory
          if crop==true: crop and save all the ROIs
-         save: whether save annotated image
+         save: whether save annotated image. means annotate rois on the original image.
          boundingbox_color: annotation color
+         
+         return_RoiArray: if true, return (n, detected ROIs (numpyarray)).if false ,return n. default FALSE
+         
+         flatten:  if true, return flattened numpyarrays of the ROIs. default false
+         
+         return_RoiArray_2RGB: if true, return RGB numpyarray, otherwise default BGR
+         
+         resize_wh: if not 0, then the roi will be resized to desinated shape (width, height) , default 0 
          
         '''
         annotations= self.annotations
         labels=self.labels
         copy = self.image.copy()
         
+        rois=[]
         for k,i in enumerate(annotations):
             x,y,w,h= annotations[k]
             label= labels[k]
 
-            if crop!=0: FrameROI.cropImgXywh(self.image, x,y,w,h, '{}_{}'.format(label,k), savedir=self.saveto_directory, 
-                                             filename=self.filename, resize_wh=(224,224) )
+            
+            roi=  FrameROI.cropImgXywh(self.image, x,y,w,h, label='{}_{}'.format(label,k), 
+                                             save= crop, savedir=self.saveto_directory, 
+                                             filename=self.filename, resize_wh=resize_wh )
+            if return_RoiArray_2RGB: roi= cv2.cvtColor(roi, cv2.COLOR_BGR2RGB)
+            if flatten: roi= roi.flatten()
+            rois.append(roi)
+            
             FrameROI.annotateWithLabel(copy,(x,y,w,h), '{}_{}'.format(label,k), color= boundingbox_color)
 
         if save: 
@@ -314,8 +355,10 @@ class FrameROI:
             #cv2.waitKey()
             cv2.destroyAllWindows()
         n = len(annotations)
-        print('{} rois have been annotated'.format(n))
-        return n 
+#        print('{} rois have been annotated'.format(n))
+        
+        
+        return n if not return_RoiArray else (n, np.array(rois))
 
 #==============================================================================
 # MAIN

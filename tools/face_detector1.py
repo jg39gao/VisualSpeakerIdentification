@@ -48,24 +48,26 @@ class FaceDetector:
             os.mkdir(self.savedir)
             print("**WARNING :  create directory :{}**".format(self.savedir), file=sys.stderr)
 
-    def detect_cv2dnn_fromRawImg_conf7(rawimg):
-        return FaceDetector.detect_cv2dnn_fromRawImg(rawimg, conf=0.7)
-    def detect_cv2dnn_fromRawImg_conf3(rawimg):
-        return FaceDetector.detect_cv2dnn_fromRawImg(rawimg, conf=0.3)
+    def detect_cv2dnn_fromRawImg_conf7(rawimg, is_rawimg= 1):
+        return FaceDetector.detect_cv2dnn_fromRawImg(rawimg, conf=0.7, is_rawimg= is_rawimg)
+    def detect_cv2dnn_fromRawImg_conf3(rawimg, is_rawimg= 1):
+        return FaceDetector.detect_cv2dnn_fromRawImg(rawimg, conf=0.3, is_rawimg= is_rawimg)
     
     def detect_cv2dnn_fromRawImg(rawimg, 
                               conf=0.5 ,
                               prototxt='deploy.prototxt.txt',
-                              model='res10_300x300_ssd_iter_140000.caffemodel'
+                              model='res10_300x300_ssd_iter_140000.caffemodel',
+                              is_rawimg= 1
                               ):
         '''
         model1: cv2.dnn.readNetFromCaffe
+        rawimg could be a cv2 BGR numpyarray if is_rawimg= 0 
         
         '''
 #        prototxt='deploy.prototxt.txt'
 #        model= 'res10_300x300_ssd_iter_140000.caffemodel'
 #        conf= 0.5 
-        image= cv2.imread(rawimg)
+        image= cv2.imread(rawimg) if is_rawimg else rawimg
         net = cv2.dnn.readNetFromCaffe(prototxt, model)
 #        imagecopy= image.copy()
         (h, w) = image.shape[:2]
