@@ -11,12 +11,15 @@ Description -   Takes the path to a folder of images to be turned into one singl
                 a matrix of uint8 values, each row being an flattened image. Also array of 
                 bool values indicating the class the image was.
 """
+import numpy as np
+import glob, os, cv2, sys
+
 
 def faces2array(path="\data_test_train_dev\\train"):
     
     # Get a list of the files in the path
     file_list = glob.glob(os.path.join(os.getcwd() + path, "*.png"))
-    
+
     X_data = np.zeros((len(file_list), 150528), dtype = np.ubyte)
     Y_data = np.zeros(len(file_list))
     
@@ -39,15 +42,18 @@ def faces2array(path="\data_test_train_dev\\train"):
     
     Y_data = Y_data.astype(np.bool_)
     print("X Array Takes Up: %4.3f GB" % (sys.getsizeof(X_data)/ 1073741824))
-    print("Y Array Takes Up: %4.3f MB" % (sys.getsizeof(Y_data)/ 1048576))
+    print("Y Array Takes Up: %4.3f MB\n" % (sys.getsizeof(Y_data)/ 1048576))
 
     return X_data, Y_data
 
-def faces2array_sample(path="\data_test_train_dev\\train", sample = 50):
+def faces2array_sample(path="\data_test_train_dev\\train", frac = 0.1):
+    # 10% is as much as I can get of the full data set without memory issues.
+    # Only increase if you have more than 32GB of RAM.
     
     # Get a list of the files in the path
     file_list = glob.glob(os.path.join(os.getcwd() + path, "*.png"))
     
+    sample = int(len(file_list) * frac)
     X_data = np.zeros((sample, 150528), dtype = np.ubyte)
     Y_data = np.zeros(sample)
     
